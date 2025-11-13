@@ -1,0 +1,8 @@
+{
+    "name": "vanni-nata-discourses",
+    "version": "1.0.0",
+    "description": "Lista discorsi per Vanni e Nata",
+    "dependencies": {
+        "mongodb": "^6.3.0"
+    }
+}

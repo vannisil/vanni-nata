@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I discorsi di Vanni e Nata</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>I discorsi di Vanni e Nata <i class="fas fa-heart"></i></h1>
+
+        <div class="input-section">
+            <input type="text" id="todo-input" placeholder="Cosa dobbiamo dirci? (Invio per aggiungere)">
+        </div>
+
+        <ul id="todo-list">
+        </ul>
+
+        <p class="loading-status" id="loading-status"></p>
+    </div>
+
+    <script>
+        const todoInput = document.getElementById('todo-input');
+        const todoList = document.getElementById('todo-list');
+        const loadingStatus = document.getElementById('loading-status');
+        const API_ENDPOINT = '/api/todos'; // L'URL della funzione Serverless su Vercel
+
+        // Funzione per caricare la lista
+        async function loadTodos() {
+            loadingStatus.textContent = "Caricamento discorsi...";
+            try {
+                const response = await fetch(API_ENDPOINT);
+                if (!response.ok) throw new Error("Errore nel caricamento della lista.");
+                const todos = await response.json();
+                renderTodos(todos);
+                loadingStatus.textContent = "";
+            } catch (error) {
+                loadingStatus.textContent = `Errore: ${error.message}`;
+            }
+        }
+
+        // Funzione per renderizzare gli elementi
+        function renderTodos(todos) {
+            todoList.innerHTML = '';
+            todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = todo.completed ? 'completed' : '';
+                li.innerHTML = `
+                    <span class="text">${todo.text}</span>
+                    <div class="actions">
+                        <i class="far ${todo.completed ? 'fa-check-circle' : 'fa-circle'}" data-id="${todo._id}" data-action="toggle"></i>
+                        <i class="fas fa-trash-alt" data-id="${todo._id}" data-action="delete"></i>
+                    </div>
+                `;
+                todoList.appendChild(li);
+            });
+        }
+
+        // Funzione per aggiungere un elemento
+        async function addTodo(text) {
+            if (!text.trim()) return;
+            loadingStatus.textContent = "Aggiunta in corso...";
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                if (!response.ok) throw new Error("Errore nell'aggiunta.");
+                todoInput.value = '';
+                await loadTodos(); // Ricarica la lista
+            } catch (error) {
+                loadingStatus.textContent = `Errore: ${error.message}`;
+            }
+        }
+
+        // Funzione per cambiare lo stato (fatto/non fatto) o eliminare
+        async function handleAction(id, action) {
+            loadingStatus.textContent = "Aggiornamento in corso...";
+            try {
+                const method = action === 'toggle' ? 'PUT' : 'DELETE';
+                const response = await fetch(`${API_ENDPOINT}?id=${id}`, { method });
+                if (!response.ok) throw new Error(`Errore nell'azione di ${action}.`);
+                await loadTodos();
+            } catch (error) {
+                loadingStatus.textContent = `Errore: ${error.message}`;
+            }
+        }
+
+        // Event Listeners
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTodo(todoInput.value);
+            }
+        });
+
+        todoList.addEventListener('click', (e) => {
+            const target = e.target;
+            const id = target.dataset.id;
+            const action = target.dataset.action;
+
+            if (id && action) {
+                handleAction(id, action);
+            }
+        });
+
+        // Carica la lista all'avvio
+        loadTodos();
+
+    </script>
+</body>
+
+</html>
